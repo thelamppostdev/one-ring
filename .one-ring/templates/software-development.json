@@ -1,0 +1,125 @@
+{
+  "title": "Software Development Project Template",
+  "overview": "Template for software development projects with comprehensive requirements and milestones",
+  "problemStatement": "Define the problem this software project aims to solve",
+  "goals": [
+    "Implement core functionality",
+    "Ensure high performance and scalability",
+    "Provide excellent user experience",
+    "Maintain code quality and documentation"
+  ],
+  "requirements": [
+    {
+      "id": "req-1",
+      "title": "Core Functionality",
+      "description": "Implement the main features of the application",
+      "priority": "high",
+      "acceptanceCriteria": [
+        "All core features are implemented",
+        "Features meet performance requirements",
+        "User interface is intuitive and responsive"
+      ]
+    },
+    {
+      "id": "req-2",
+      "title": "Authentication & Authorization",
+      "description": "Secure user authentication and role-based access control",
+      "priority": "high",
+      "acceptanceCriteria": [
+        "Users can securely register and login",
+        "Role-based permissions are enforced",
+        "Session management is secure"
+      ]
+    },
+    {
+      "id": "req-3",
+      "title": "Data Persistence",
+      "description": "Reliable data storage and retrieval system",
+      "priority": "medium",
+      "acceptanceCriteria": [
+        "Data is stored securely and reliably",
+        "Backup and recovery mechanisms are in place",
+        "Database performance is optimized"
+      ]
+    },
+    {
+      "id": "req-4",
+      "title": "Testing & Quality Assurance",
+      "description": "Comprehensive testing strategy and quality metrics",
+      "priority": "medium",
+      "acceptanceCriteria": [
+        "Unit tests cover critical functionality",
+        "Integration tests verify system behavior",
+        "Code coverage meets quality standards"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "All requirements are fully implemented",
+    "System passes all tests and quality checks",
+    "Documentation is complete and up-to-date",
+    "Performance benchmarks are met",
+    "Security requirements are satisfied"
+  ],
+  "timeline": {
+    "startDate": "2025-01-01",
+    "endDate": "2025-06-01",
+    "milestones": [
+      {
+        "name": "Planning & Design Complete",
+        "date": "2025-01-15",
+        "description": "Requirements finalized, architecture designed, development plan approved"
+      },
+      {
+        "name": "Core Development Phase 1",
+        "date": "2025-03-01",
+        "description": "Basic functionality implemented and tested"
+      },
+      {
+        "name": "Feature Complete",
+        "date": "2025-04-15",
+        "description": "All features implemented, ready for testing"
+      },
+      {
+        "name": "Testing & Bug Fixes",
+        "date": "2025-05-15",
+        "description": "Comprehensive testing complete, major bugs resolved"
+      },
+      {
+        "name": "Production Release",
+        "date": "2025-06-01",
+        "description": "System deployed to production, documentation complete"
+      }
+    ]
+  },
+  "assumptions": [
+    "Development team has necessary skills and resources",
+    "Third-party dependencies are stable and available",
+    "Hardware and infrastructure requirements can be met",
+    "Stakeholder requirements remain stable during development"
+  ],
+  "constraints": [
+    "Must comply with relevant security standards",
+    "Budget limitations may affect scope",
+    "Timeline is fixed due to business requirements",
+    "Must be compatible with existing systems"
+  ],
+  "risksAndMitigation": [
+    {
+      "risk": "Key team member unavailability",
+      "mitigation": "Cross-training and documentation to ensure knowledge transfer"
+    },
+    {
+      "risk": "Technology stack changes or deprecation",
+      "mitigation": "Choose stable, well-supported technologies with migration paths"
+    },
+    {
+      "risk": "Performance issues at scale",
+      "mitigation": "Early performance testing and optimization planning"
+    },
+    {
+      "risk": "Security vulnerabilities",
+      "mitigation": "Regular security audits and adherence to security best practices"
+    }
+  ]
+}
