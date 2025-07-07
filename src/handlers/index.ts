@@ -251,6 +251,9 @@ export class TaskManagerHandlers {
 
   // Implementation methods
   private async createProject(args: any): Promise<Project> {
+    // Set working directory from current process working directory
+    this.storage.setWorkingDirectory(process.cwd());
+    
     const id = this.storage.generateId();
     const timestamp = this.storage.getCurrentTimestamp();
     
@@ -325,6 +328,9 @@ export class TaskManagerHandlers {
   }
 
   private async createTask(args: any): Promise<Task> {
+    // Set working directory from current process working directory
+    this.storage.setWorkingDirectory(process.cwd());
+    
     const id = this.storage.generateId();
     const timestamp = this.storage.getCurrentTimestamp();
     
@@ -403,6 +409,9 @@ export class TaskManagerHandlers {
   }
 
   private async decomposeTask(args: any): Promise<Task[]> {
+    // Set working directory from current process working directory
+    this.storage.setWorkingDirectory(process.cwd());
+    
     const parentTask = await this.storage.getTask(args.taskId);
     if (!parentTask) throw new Error('Parent task not found');
 

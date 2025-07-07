@@ -3,35 +3,172 @@ import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { Project, Task, ProjectSchema, TaskSchema } from '../models';
 
+interface ProjectConfig {
+  projectDirectory: string;
+  projectName: string;
+  created: string;
+  updated: string;
+}
+
 export class StorageManager {
-  private readonly dataDir: string;
-  private readonly projectsDir: string;
-  private readonly tasksDir: string;
+  private readonly baseDir: string;
+  private cachedProjectDir: string | null = null;
+  private overrideWorkingDir: string | null = null;
 
   constructor(baseDir: string = '.one-ring') {
-    // Use the calling directory from environment variable if available, otherwise fall back to process.cwd()
-    const workingDir = process.env.MCP_CALLING_DIR || process.env.PWD || process.cwd();
-    this.dataDir = path.join(workingDir, baseDir, 'data');
-    this.projectsDir = path.join(this.dataDir, 'projects');
-    this.tasksDir = path.join(this.dataDir, 'tasks');
+    this.baseDir = baseDir;
+    console.error(`StorageManager initialized with baseDir: ${baseDir}`);
   }
 
-  async initialize(): Promise<void> {
-    await fs.mkdir(this.dataDir, { recursive: true });
-    await fs.mkdir(this.projectsDir, { recursive: true });
-    await fs.mkdir(this.tasksDir, { recursive: true });
+  // Allow setting working directory for this operation
+  setWorkingDirectory(dir: string): void {
+    this.overrideWorkingDir = dir;
+    this.cachedProjectDir = null; // Clear cache when directory changes
+    console.error(`Working directory set to: ${dir}`);
+  }
+
+  // Find existing project configurations
+  private async findExistingProjectConfigs(): Promise<ProjectConfig[]> {
+    const configs: ProjectConfig[] = [];
+    const workspacePaths = [
+      '/Users/bmize/Workspace/code',
+      process.env.HOME + '/Workspace/code',
+    ];
+
+    for (const workspacePath of workspacePaths) {
+      try {
+        const syncFs = require('fs');
+        if (syncFs.existsSync(workspacePath)) {
+          const subdirs = syncFs.readdirSync(workspacePath, { withFileTypes: true })
+            .filter((dirent: any) => dirent.isDirectory())
+            .map((dirent: any) => path.join(workspacePath, dirent.name));
+          
+          for (const subdir of subdirs) {
+            const configPath = path.join(subdir, this.baseDir, 'config.json');
+            if (syncFs.existsSync(configPath)) {
+              try {
+                const configData = JSON.parse(syncFs.readFileSync(configPath, 'utf-8'));
+                configs.push(configData);
+                console.error(`Found project config in: ${subdir}`);
+              } catch (error) {
+                console.error(`Error reading config from ${configPath}:`, error);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Error scanning workspace ${workspacePath}:`, error);
+      }
+    }
+
+    return configs;
+  }
+
+  // Create or update project configuration
+  private async saveProjectConfig(projectDir: string): Promise<void> {
+    const configDir = path.join(projectDir, this.baseDir);
+    const configPath = path.join(configDir, 'config.json');
+    
+    await fs.mkdir(configDir, { recursive: true });
+    
+    const config: ProjectConfig = {
+      projectDirectory: projectDir,
+      projectName: path.basename(projectDir),
+      created: new Date().toISOString(),
+      updated: new Date().toISOString()
+    };
+    
+    // If config already exists, preserve the created date
+    try {
+      const existingConfig = JSON.parse(await fs.readFile(configPath, 'utf-8'));
+      config.created = existingConfig.created;
+    } catch (error) {
+      // Config doesn't exist yet, use new created date
+    }
+    
+    await fs.writeFile(configPath, JSON.stringify(config, null, 2));
+    console.error(`Saved project config for: ${projectDir}`);
+  }
+
+  private async getProjectDirectory(): Promise<{ dataDir: string; projectsDir: string; tasksDir: string }> {
+    // If we've already found a project directory, use the cached one
+    if (this.cachedProjectDir) {
+      const dataDir = path.join(this.cachedProjectDir, this.baseDir, 'data');
+      return {
+        dataDir,
+        projectsDir: path.join(dataDir, 'projects'),
+        tasksDir: path.join(dataDir, 'tasks')
+      };
+    }
+
+    let workingDir: string;
+
+    // If we have an override, use that
+    if (this.overrideWorkingDir) {
+      workingDir = this.overrideWorkingDir;
+      console.error(`Using override working directory: ${workingDir}`);
+    } else {
+      // Look for existing project configurations
+      const existingConfigs = await this.findExistingProjectConfigs();
+      
+      if (existingConfigs.length === 1) {
+        // If there's exactly one project config, use it
+        workingDir = existingConfigs[0]!.projectDirectory;
+        console.error(`Using existing project config: ${workingDir}`);
+      } else if (existingConfigs.length > 1) {
+        // Multiple projects found - use the most recently updated one
+        const mostRecent = existingConfigs.sort((a, b) => 
+          new Date(b.updated).getTime() - new Date(a.updated).getTime()
+        )[0];
+        workingDir = mostRecent!.projectDirectory;
+        console.error(`Multiple projects found, using most recent: ${workingDir}`);
+      } else {
+        // No existing configs, use the current working directory
+        workingDir = process.cwd()
+        console.error(`No existing projects, using calling directory: ${workingDir}`);
+        
+        // Save the new project config
+        await this.saveProjectConfig(workingDir);
+      }
+    }
+    
+    // Cache the result
+    this.cachedProjectDir = workingDir;
+    
+    const dataDir = path.join(workingDir, this.baseDir, 'data');
+    const dirs = {
+      dataDir,
+      projectsDir: path.join(dataDir, 'projects'),
+      tasksDir: path.join(dataDir, 'tasks')
+    };
+    
+    console.error(`Data directory: ${dirs.dataDir}`);
+    console.error(`Projects directory: ${dirs.projectsDir}`);
+    
+    return dirs;
   }
 
   // Project operations
   async saveProject(project: Project): Promise<void> {
     const validated = ProjectSchema.parse(project);
-    const filePath = path.join(this.projectsDir, `${project.id}.json`);
+    const { projectsDir } = await this.getProjectDirectory();
+    
+    // Ensure directories exist
+    await fs.mkdir(projectsDir, { recursive: true });
+    
+    const filePath = path.join(projectsDir, `${project.id}.json`);
     await fs.writeFile(filePath, JSON.stringify(validated, null, 2));
+    
+    // Update project config with current timestamp
+    if (this.cachedProjectDir) {
+      await this.saveProjectConfig(this.cachedProjectDir);
+    }
   }
 
   async getProject(id: string): Promise<Project | null> {
     try {
-      const filePath = path.join(this.projectsDir, `${id}.json`);
+      const { projectsDir } = await this.getProjectDirectory();
+      const filePath = path.join(projectsDir, `${id}.json`);
       const content = await fs.readFile(filePath, 'utf-8');
       const data = JSON.parse(content);
       return ProjectSchema.parse(data);
@@ -45,12 +182,13 @@ export class StorageManager {
 
   async listProjects(): Promise<Project[]> {
     try {
-      const files = await fs.readdir(this.projectsDir);
+      const { projectsDir } = await this.getProjectDirectory();
+      const files = await fs.readdir(projectsDir);
       const projects: Project[] = [];
       
       for (const file of files) {
         if (file.endsWith('.json')) {
-          const content = await fs.readFile(path.join(this.projectsDir, file), 'utf-8');
+          const content = await fs.readFile(path.join(projectsDir, file), 'utf-8');
           const data = JSON.parse(content);
           projects.push(ProjectSchema.parse(data));
         }
@@ -67,7 +205,8 @@ export class StorageManager {
 
   async deleteProject(id: string): Promise<boolean> {
     try {
-      const filePath = path.join(this.projectsDir, `${id}.json`);
+      const { projectsDir } = await this.getProjectDirectory();
+      const filePath = path.join(projectsDir, `${id}.json`);
       await fs.unlink(filePath);
       
       // Also delete associated tasks
@@ -86,13 +225,19 @@ export class StorageManager {
   // Task operations
   async saveTask(task: Task): Promise<void> {
     const validated = TaskSchema.parse(task);
-    const filePath = path.join(this.tasksDir, `${task.id}.json`);
+    const { tasksDir } = await this.getProjectDirectory();
+    
+    // Ensure directories exist
+    await fs.mkdir(tasksDir, { recursive: true });
+    
+    const filePath = path.join(tasksDir, `${task.id}.json`);
     await fs.writeFile(filePath, JSON.stringify(validated, null, 2));
   }
 
   async getTask(id: string): Promise<Task | null> {
     try {
-      const filePath = path.join(this.tasksDir, `${id}.json`);
+      const { tasksDir } = await this.getProjectDirectory();
+      const filePath = path.join(tasksDir, `${id}.json`);
       const content = await fs.readFile(filePath, 'utf-8');
       const data = JSON.parse(content);
       return TaskSchema.parse(data);
@@ -106,12 +251,13 @@ export class StorageManager {
 
   async listTasks(filter: { projectId?: string } = {}): Promise<Task[]> {
     try {
-      const files = await fs.readdir(this.tasksDir);
+      const { tasksDir } = await this.getProjectDirectory();
+      const files = await fs.readdir(tasksDir);
       const tasks: Task[] = [];
       
       for (const file of files) {
         if (file.endsWith('.json')) {
-          const content = await fs.readFile(path.join(this.tasksDir, file), 'utf-8');
+          const content = await fs.readFile(path.join(tasksDir, file), 'utf-8');
           const data = JSON.parse(content);
           const task = TaskSchema.parse(data);
           
@@ -132,7 +278,8 @@ export class StorageManager {
 
   async deleteTask(id: string): Promise<boolean> {
     try {
-      const filePath = path.join(this.tasksDir, `${id}.json`);
+      const { tasksDir } = await this.getProjectDirectory();
+      const filePath = path.join(tasksDir, `${id}.json`);
       await fs.unlink(filePath);
       return true;
     } catch (error) {
@@ -141,6 +288,11 @@ export class StorageManager {
       }
       throw error;
     }
+  }
+
+  // Configuration management
+  async getProjectConfigs(): Promise<ProjectConfig[]> {
+    return this.findExistingProjectConfigs();
   }
 
   // Utility functions
@@ -153,8 +305,9 @@ export class StorageManager {
   }
 
   async backup(): Promise<string> {
+    const { dataDir, projectsDir, tasksDir } = await this.getProjectDirectory();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupDir = path.join(this.dataDir, '..', 'backups', timestamp);
+    const backupDir = path.join(dataDir, '..', 'backups', timestamp);
     
     await fs.mkdir(backupDir, { recursive: true });
     
@@ -163,11 +316,11 @@ export class StorageManager {
     await fs.mkdir(projectBackupDir, { recursive: true });
     
     try {
-      const projectFiles = await fs.readdir(this.projectsDir);
+      const projectFiles = await fs.readdir(projectsDir);
       await Promise.all(
         projectFiles.map(file => 
           fs.copyFile(
-            path.join(this.projectsDir, file),
+            path.join(projectsDir, file),
             path.join(projectBackupDir, file)
           )
         )
@@ -181,11 +334,11 @@ export class StorageManager {
     await fs.mkdir(taskBackupDir, { recursive: true });
     
     try {
-      const taskFiles = await fs.readdir(this.tasksDir);
+      const taskFiles = await fs.readdir(tasksDir);
       await Promise.all(
         taskFiles.map(file => 
           fs.copyFile(
-            path.join(this.tasksDir, file),
+            path.join(tasksDir, file),
             path.join(taskBackupDir, file)
           )
         )

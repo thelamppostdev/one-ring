@@ -186,33 +186,46 @@ The MCP server is designed to work seamlessly with AI development agents. Agents
 
 ## Using from Other Projects
 
-To use the One Ring Task Manager from other projects (like `prancing-pony-crm`):
+To use the One Ring Task Manager in your projects:
 
-### 1. Copy the VS Code Settings
-Copy the configuration from `vscode-settings-template.json` to your project's `.vscode/settings.json`:
+### Option 1: Automatic Setup (Recommended)
 
-```json
-{
-  "mcp.servers": {
-    "one-ring-task-manager": {
-      "command": "/Users/bmize/Workspace/code/one-ring/start-server.sh",
-      "args": [],
-      "env": {},
-      "transport": "stdio"
-    }
-  }
-}
+Run the installation script from your project directory:
+
+```bash
+# From your project root directory
+/Users/bmize/Workspace/code/one-ring/.one-ring/config/install-one-ring.sh
 ```
 
-### 2. Global Installation
-The `start-server.sh` script uses absolute paths, so it can be run from any directory.
+This will:
+- Create the `.one-ring` directory structure in your project
+- Set up the MCP configuration
+- Create a project marker file
+- Configure VS Code settings (if needed)
 
-### 3. Project-Specific Data Storage
-The task manager now creates `.one-ring/data/` directories in each project where it's used. This enables:
-- Project-specific task tracking and PRDs
-- Git version control of project management data
-- Isolated project data per repository
-- Local backup and sharing of project plans
+### Option 2: Manual Setup
+
+1. **Create project structure**:
+   ```bash
+   mkdir -p .one-ring/{data/projects,data/tasks,backups,config}
+   echo "$(basename $(pwd))" > .one-ring-project
+   ```
+
+2. **Copy MCP configuration**:
+   ```bash
+   cp /Users/bmize/Workspace/code/one-ring/.one-ring/config/mcp-settings-template.json .one-ring/config/
+   ```
+
+3. **Configure VS Code**: Copy the MCP settings to `.vscode/settings.json`
+
+### Project-Specific Data Storage
+The task manager dynamically creates `.one-ring/data/` directories when you first create a project. This enables:
+- **Dynamic Discovery**: Finds the correct project directory when tools are used
+- **Project-specific**: Task tracking and PRDs are isolated per project
+- **Git Integration**: Project management data is version controlled with your code
+- **No Premature Creation**: No directories created until actually needed
+- **Context-Aware**: Uses project markers (`.git`, `package.json`, etc.) to find the right location
+- **Self-contained**: Configuration travels with your project
 
 ## Configuration
 

@@ -76,10 +76,7 @@ class OneRingTaskManagerServer {
     });
   }
 
-  async run(): Promise<void> {
-    // Initialize storage
-    await this.storage.initialize();
-    
+  async run(): Promise<void> {  
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
     
