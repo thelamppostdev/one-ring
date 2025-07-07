@@ -27,41 +27,17 @@ export class StorageManager {
     console.error(`Working directory set to: ${dir}`);
   }
 
-  // Find existing project configurations
-  private async findExistingProjectConfigs(): Promise<ProjectConfig[]> {
-    const configs: ProjectConfig[] = [];
-    const workspacePaths = [
-      '/Users/bmize/Workspace/code',
-      process.env.HOME + '/Workspace/code',
-    ];
-
-    for (const workspacePath of workspacePaths) {
-      try {
-        const syncFs = require('fs');
-        if (syncFs.existsSync(workspacePath)) {
-          const subdirs = syncFs.readdirSync(workspacePath, { withFileTypes: true })
-            .filter((dirent: any) => dirent.isDirectory())
-            .map((dirent: any) => path.join(workspacePath, dirent.name));
-          
-          for (const subdir of subdirs) {
-            const configPath = path.join(subdir, this.baseDir, 'config.json');
-            if (syncFs.existsSync(configPath)) {
-              try {
-                const configData = JSON.parse(syncFs.readFileSync(configPath, 'utf-8'));
-                configs.push(configData);
-                console.error(`Found project config in: ${subdir}`);
-              } catch (error) {
-                console.error(`Error reading config from ${configPath}:`, error);
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error(`Error scanning workspace ${workspacePath}:`, error);
-      }
+  // Check for existing project configuration in current directory
+  private async findLocalProjectConfig(dir: string): Promise<ProjectConfig | null> {
+    try {
+      const configPath = path.join(dir, this.baseDir, 'config.json');
+      const configData = JSON.parse(await fs.readFile(configPath, 'utf-8'));
+      console.error(`Found project config in: ${dir}`);
+      return configData;
+    } catch (error) {
+      // Config doesn't exist in this directory
+      return null;
     }
-
-    return configs;
   }
 
   // Create or update project configuration
@@ -108,27 +84,16 @@ export class StorageManager {
       workingDir = this.overrideWorkingDir;
       console.error(`Using override working directory: ${workingDir}`);
     } else {
-      // Look for existing project configurations
-      const existingConfigs = await this.findExistingProjectConfigs();
+      // Use process.cwd() as the working directory
+      workingDir = process.cwd();
+      console.error(`Using current working directory: ${workingDir}`);
       
-      if (existingConfigs.length === 1) {
-        // If there's exactly one project config, use it
-        workingDir = existingConfigs[0]!.projectDirectory;
-        console.error(`Using existing project config: ${workingDir}`);
-      } else if (existingConfigs.length > 1) {
-        // Multiple projects found - use the most recently updated one
-        const mostRecent = existingConfigs.sort((a, b) => 
-          new Date(b.updated).getTime() - new Date(a.updated).getTime()
-        )[0];
-        workingDir = mostRecent!.projectDirectory;
-        console.error(`Multiple projects found, using most recent: ${workingDir}`);
-      } else {
-        // No existing configs, use the current working directory
-        workingDir = process.cwd()
-        console.error(`No existing projects, using calling directory: ${workingDir}`);
-        
-        // Save the new project config
+      // Check if there's already a project config in this directory
+      const existingConfig = await this.findLocalProjectConfig(workingDir);
+      if (!existingConfig) {
+        // No existing config, create a new one
         await this.saveProjectConfig(workingDir);
+        console.error(`Created new project config for: ${workingDir}`);
       }
     }
     
@@ -288,11 +253,6 @@ export class StorageManager {
       }
       throw error;
     }
-  }
-
-  // Configuration management
-  async getProjectConfigs(): Promise<ProjectConfig[]> {
-    return this.findExistingProjectConfigs();
   }
 
   // Utility functions
