@@ -1,6 +1,6 @@
 {
   "name": "one-ring-task-manager",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TypeScript MCP server for AI task management and project organization",
   "main": "dist/server.js",
   "scripts": {

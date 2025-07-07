@@ -8,6 +8,12 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { StorageManager } from './utils/storage.js';
 import { TaskManagerHandlers } from './handlers/index.js';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+// Get package.json version dynamically
+const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
+const VERSION = packageJson.version;
 
 class OneRingTaskManagerServer {
   private server: Server;
@@ -18,7 +24,7 @@ class OneRingTaskManagerServer {
     this.server = new Server(
       {
         name: 'one-ring-task-manager',
-        version: '1.0.0',
+        version: VERSION,
       },
       {
         capabilities: {

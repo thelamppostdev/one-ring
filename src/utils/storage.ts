@@ -9,7 +9,9 @@ export class StorageManager {
   private readonly tasksDir: string;
 
   constructor(baseDir: string = '.one-ring') {
-    this.dataDir = path.join(process.cwd(), baseDir, 'data');
+    // Use the calling directory from environment variable if available, otherwise fall back to process.cwd()
+    const workingDir = process.env.MCP_CALLING_DIR || process.env.PWD || process.cwd();
+    this.dataDir = path.join(workingDir, baseDir, 'data');
     this.projectsDir = path.join(this.dataDir, 'projects');
     this.tasksDir = path.join(this.dataDir, 'tasks');
   }

@@ -3,7 +3,6 @@
     "one-ring-task-manager": {
       "command": "/Users/bmize/Workspace/code/one-ring/start-server.sh",
       "args": [],
-      "cwd": "/Users/bmize/Workspace/code/one-ring",
       "env": {},
       "transport": "stdio",
       "description": "One Ring Task Manager - AI project and task management MCP server"

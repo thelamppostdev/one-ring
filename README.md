@@ -197,7 +197,6 @@ Copy the configuration from `vscode-settings-template.json` to your project's `.
     "one-ring-task-manager": {
       "command": "/Users/bmize/Workspace/code/one-ring/start-server.sh",
       "args": [],
-      "cwd": "/Users/bmize/Workspace/code/one-ring",
       "env": {},
       "transport": "stdio"
     }
@@ -208,11 +207,12 @@ Copy the configuration from `vscode-settings-template.json` to your project's `.
 ### 2. Global Installation
 The `start-server.sh` script uses absolute paths, so it can be run from any directory.
 
-### 3. Shared Data
-All projects will share the same task manager data stored in `.one-ring/data/`. This enables:
-- Cross-project task tracking
-- Shared PRD repository
-- Centralized project management
+### 3. Project-Specific Data Storage
+The task manager now creates `.one-ring/data/` directories in each project where it's used. This enables:
+- Project-specific task tracking and PRDs
+- Git version control of project management data
+- Isolated project data per repository
+- Local backup and sharing of project plans
 
 ## Configuration
 
